@@ -20,6 +20,11 @@ function getCurrentWallet() {
   return wallets.length > 0 ? wallets[0] : undefined;
 }
 
+// Type guard to check if wallet has specific feature
+function hasFeature<T extends string>(wallet: any, feature: T): wallet is { features: { [key in T]: any } } {
+  return wallet && wallet.features && feature in wallet.features;
+}
+
 export const suiBlockchain = {
   connectWallet: async (): Promise<{ address: string }> => {
     try {
@@ -30,7 +35,7 @@ export const suiBlockchain = {
       }
       
       // Check if the wallet supports the required features
-      if (!wallet.features['standard:connect']) {
+      if (!hasFeature(wallet, 'standard:connect')) {
         throw new Error('Wallet does not support connect feature');
       }
       
@@ -80,10 +85,11 @@ export const suiBlockchain = {
   ) => {
     const tx = new Transaction();
     
-    // Convert parameters to appropriate types for Transaction
-    const difficultyParam = tx.pure.string(difficulty);
-    const showCommentaryParam = tx.pure.bool(showCommentary);
-    const creatorAddressParam = tx.pure.string(creatorAddress);
+    // Correctly create transaction arguments with proper typing
+    // Convert to Buffer for binary data (compatible with Uint8Array expectations)
+    const difficultyParam = tx.pure(Buffer.from(difficulty));
+    const showCommentaryParam = tx.pure(showCommentary);
+    const creatorAddressParam = tx.pure(Buffer.from(creatorAddress));
     
     // Example of minting a new game NFT
     tx.moveCall({
@@ -102,7 +108,7 @@ export const suiBlockchain = {
         throw new Error('No Sui wallets detected');
       }
       
-      if (!wallet.features['standard:signAndExecuteTransactionBlock']) {
+      if (!hasFeature(wallet, 'standard:signAndExecuteTransactionBlock')) {
         throw new Error('Wallet does not support signAndExecuteTransactionBlock feature');
       }
       
@@ -144,8 +150,8 @@ export const suiBlockchain = {
     const tx = new Transaction();
     
     // Convert parameters to appropriate types for Transaction
-    const gameIdParam = tx.pure.string(gameId);
-    const toAddressParam = tx.pure.string(toAddress);
+    const gameIdParam = tx.pure(Buffer.from(gameId));
+    const toAddressParam = tx.pure(Buffer.from(toAddress));
     
     tx.moveCall({
       target: '0x2::sudoku::transfer', // Replace with your actual package ID
@@ -162,7 +168,7 @@ export const suiBlockchain = {
         throw new Error('No Sui wallets detected');
       }
       
-      if (!wallet.features['standard:signAndExecuteTransactionBlock']) {
+      if (!hasFeature(wallet, 'standard:signAndExecuteTransactionBlock')) {
         throw new Error('Wallet does not support signAndExecuteTransactionBlock feature');
       }
       
@@ -188,8 +194,8 @@ export const suiBlockchain = {
     const tx = new Transaction();
     
     // Convert parameters to appropriate types for Transaction
-    const gameIdParam = tx.pure.string(gameId);
-    const amountParam = tx.pure.string(amount.toString());
+    const gameIdParam = tx.pure(Buffer.from(gameId));
+    const amountParam = tx.pure(Buffer.from(amount.toString()));
     
     tx.moveCall({
       target: '0x2::sudoku::set_bounty', // Replace with your actual package ID
@@ -206,7 +212,7 @@ export const suiBlockchain = {
         throw new Error('No Sui wallets detected');
       }
       
-      if (!wallet.features['standard:signAndExecuteTransactionBlock']) {
+      if (!hasFeature(wallet, 'standard:signAndExecuteTransactionBlock')) {
         throw new Error('Wallet does not support signAndExecuteTransactionBlock feature');
       }
       
@@ -237,7 +243,7 @@ export const suiBlockchain = {
       }
 
       // Check if the wallet has a disconnect feature
-      if (wallet.features['standard:disconnect']) {
+      if (hasFeature(wallet, 'standard:disconnect')) {
         const disconnectFeature = wallet.features['standard:disconnect'];
         await disconnectFeature.disconnect();
       }
@@ -250,5 +256,3 @@ export const suiBlockchain = {
   }
 };
 
-// Note: We're no longer redefining the types from the @mysten/wallet-standard package
-// Instead, we rely on the types provided by the package itself
