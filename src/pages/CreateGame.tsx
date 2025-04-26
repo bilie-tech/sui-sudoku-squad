@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import GameOptions from '@/components/GameOptions';
 import { DifficultyLevel, SudokuGame } from '@/types/sudoku';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockBlockchainApi } from '@/utils/mockBlockchain';
+import { suiBlockchain } from '@/utils/suiBlockchain';
 import { toast } from 'sonner';
 
 const CreateGame: React.FC = () => {
@@ -18,10 +18,10 @@ const CreateGame: React.FC = () => {
     
     try {
       // Get the current user
-      const user = await mockBlockchainApi.getCurrentUser();
+      const user = await suiBlockchain.getCurrentUser();
       
-      // Mint a new game
-      const newGame = await mockBlockchainApi.mintGame(difficulty, showCommentary, user.address);
+      // Mint a new game on the Sui blockchain
+      const newGame = await suiBlockchain.mintGame(difficulty, showCommentary, user.address);
       
       toast.success("Sudoku NFT game created successfully!");
       
