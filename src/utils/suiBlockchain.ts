@@ -1,5 +1,6 @@
+
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
-import { TransactionBlock } from '@mysten/sui/transactions';
+import { Transaction } from '@mysten/sui/transactions';
 import { getWallets, Wallet, WalletAccount } from '@mysten/wallet-standard';
 import { DifficultyLevel } from '../types/sudoku';
 
@@ -76,7 +77,7 @@ export const suiBlockchain = {
     showCommentary: boolean,
     creatorAddress: string
   ) => {
-    const tx = new TransactionBlock();
+    const tx = new Transaction();
     
     // Example of minting a new game NFT
     tx.moveCall({
@@ -133,7 +134,7 @@ export const suiBlockchain = {
   },
 
   transferGame: async (gameId: string, toAddress: string): Promise<boolean> => {
-    const tx = new TransactionBlock();
+    const tx = new Transaction();
     
     tx.moveCall({
       target: '0x2::sudoku::transfer', // Replace with your actual package ID
@@ -172,7 +173,7 @@ export const suiBlockchain = {
   },
 
   setBounty: async (gameId: string, amount: number): Promise<boolean> => {
-    const tx = new TransactionBlock();
+    const tx = new Transaction();
     
     tx.moveCall({
       target: '0x2::sudoku::set_bounty', // Replace with your actual package ID
@@ -211,7 +212,8 @@ export const suiBlockchain = {
   }
 };
 
-// Type definitions for the Wallet Standard
+// Update type definitions for the Wallet Standard to match 
+// what's expected by the @mysten/wallet-standard package
 declare module '@mysten/wallet-standard' {
   export function getWallets(): {
     get: () => Wallet[];
@@ -219,20 +221,20 @@ declare module '@mysten/wallet-standard' {
   };
 
   export interface Wallet {
-    name: string;
-    icon: string;
-    accounts: WalletAccount[];
-    chains: string[];
-    features: {
+    readonly name: string;
+    readonly icon: string | `data:image/svg+xml;base64,${string}` | `data:image/webp;base64,${string}` | `data:image/png;base64,${string}` | `data:image/gif;base64,${string}`;
+    readonly accounts: readonly WalletAccount[];
+    readonly chains: readonly string[];
+    readonly features: {
       'standard:connect'?: {
-        connect: () => Promise<{ accounts: WalletAccount[] }>;
+        connect: () => Promise<{ accounts: readonly WalletAccount[] }>;
       };
       'standard:events'?: {
         on: (event: string, callback: (data: any) => void) => void;
       };
       'standard:signAndExecuteTransactionBlock'?: {
         signAndExecuteTransactionBlock: (params: {
-          transactionBlock: TransactionBlock;
+          transactionBlock: Transaction;
           account: WalletAccount;
           chain: string;
           options?: {
@@ -248,9 +250,9 @@ declare module '@mysten/wallet-standard' {
   }
 
   export interface WalletAccount {
-    address: string;
-    publicKey: Uint8Array;
-    chains: string[];
-    features: string[];
+    readonly address: string;
+    readonly publicKey: readonly number[];
+    readonly chains: readonly string[];
+    readonly features: readonly string[];
   }
 }

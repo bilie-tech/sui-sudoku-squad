@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -28,12 +27,6 @@ const Header: React.FC = () => {
     setIsConnecting(true);
     
     try {
-      if (typeof window === 'undefined' || !window.suiWallet) {
-        toast.error('Sui wallet extension not detected. Please install a Sui wallet extension.');
-        setIsConnecting(false);
-        return;
-      }
-      
       const { address } = await suiBlockchain.connectWallet();
       setUserAddress(address);
       toast.success('Connected to Sui wallet successfully!');
