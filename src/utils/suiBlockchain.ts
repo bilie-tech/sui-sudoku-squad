@@ -1,7 +1,7 @@
 
 import { SuiClient, getFullnodeUrl } from '@mysten/sui.js/client';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
-import { getWallets } from '@mysten/wallet-kit';
+import { useWalletKit } from '@mysten/wallet-kit';
 import { DifficultyLevel } from '../types/sudoku';
 
 // Initialize Sui client (using testnet by default)
@@ -10,28 +10,24 @@ const client = new SuiClient({ url: getFullnodeUrl('testnet') });
 export const suiBlockchain = {
   connectWallet: async (): Promise<{ address: string }> => {
     try {
-      // Get available wallets using the wallet-kit
-      const availableWallets = getWallets();
-      
-      if (availableWallets.length === 0) {
+      // Get the wallet adapter - note this requires being in a React context
+      // with WalletProvider
+      if (typeof window === 'undefined' || !window.suiWallet) {
         throw new Error('No Sui wallets detected. Please install a Sui wallet extension.');
       }
       
-      // Use the first available wallet (in production, you might want to let users choose)
-      const wallet = availableWallets[0];
+      // For non-React contexts, we can use window.suiWallet
+      const wallet = window.suiWallet;
       
-      if (!wallet.features.standard?.connect) {
-        throw new Error('Wallet does not support standard connect feature');
-      }
+      // Request connection
+      await wallet.requestPermissions();
+      const accounts = await wallet.getAccounts();
       
-      // Request permissions and get accounts
-      const accounts = await wallet.features.standard.connect();
-      
-      if (!accounts || accounts.accounts.length === 0) {
+      if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found in wallet');
       }
 
-      return { address: accounts.accounts[0].address };
+      return { address: accounts[0] };
     } catch (error) {
       console.error('Failed to connect to Sui wallet:', error);
       throw error;
@@ -40,25 +36,18 @@ export const suiBlockchain = {
 
   getCurrentUser: async (): Promise<{ address: string }> => {
     try {
-      const availableWallets = getWallets();
-      
-      if (availableWallets.length === 0) {
+      if (typeof window === 'undefined' || !window.suiWallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = availableWallets[0];
+      const wallet = window.suiWallet;
+      const accounts = await wallet.getAccounts();
       
-      if (!wallet.features.standard?.connect) {
-        throw new Error('Wallet does not support standard connect feature');
-      }
-      
-      const currentAccounts = await wallet.features.standard.connect();
-      
-      if (!currentAccounts || currentAccounts.accounts.length === 0) {
+      if (!accounts || accounts.length === 0) {
         throw new Error('Not connected to Sui wallet');
       }
       
-      return { address: currentAccounts.accounts[0].address };
+      return { address: accounts[0] };
     } catch (error) {
       console.error('Failed to get current user:', error);
       throw error;
@@ -83,21 +72,14 @@ export const suiBlockchain = {
     });
 
     try {
-      const availableWallets = getWallets();
-      
-      if (availableWallets.length === 0) {
+      if (typeof window === 'undefined' || !window.suiWallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = availableWallets[0];
+      const wallet = window.suiWallet;
       
-      if (!wallet.features.standard?.signAndExecuteTransactionBlock) {
-        throw new Error('Wallet does not support signAndExecuteTransactionBlock');
-      }
-      
-      const result = await wallet.features.standard.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        chain: 'sui:testnet', // or 'sui:mainnet' for production
+      const result = await wallet.signAndExecuteTransaction({
+        transaction: tx,
         options: {
           showEvents: true,
           showEffects: true,
@@ -135,21 +117,14 @@ export const suiBlockchain = {
     });
 
     try {
-      const availableWallets = getWallets();
-      
-      if (availableWallets.length === 0) {
+      if (typeof window === 'undefined' || !window.suiWallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = availableWallets[0];
+      const wallet = window.suiWallet;
       
-      if (!wallet.features.standard?.signAndExecuteTransactionBlock) {
-        throw new Error('Wallet does not support signAndExecuteTransactionBlock');
-      }
-      
-      await wallet.features.standard.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        chain: 'sui:testnet', // or 'sui:mainnet' for production
+      await wallet.signAndExecuteTransaction({
+        transaction: tx
       });
       
       return true;
@@ -171,21 +146,14 @@ export const suiBlockchain = {
     });
 
     try {
-      const availableWallets = getWallets();
-      
-      if (availableWallets.length === 0) {
+      if (typeof window === 'undefined' || !window.suiWallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = availableWallets[0];
+      const wallet = window.suiWallet;
       
-      if (!wallet.features.standard?.signAndExecuteTransactionBlock) {
-        throw new Error('Wallet does not support signAndExecuteTransactionBlock');
-      }
-      
-      await wallet.features.standard.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        chain: 'sui:testnet', // or 'sui:mainnet' for production
+      await wallet.signAndExecuteTransaction({
+        transaction: tx
       });
       
       return true;
@@ -195,3 +163,23 @@ export const suiBlockchain = {
     }
   }
 };
+
+// Add this for TypeScript support
+declare global {
+  interface Window {
+    suiWallet?: {
+      requestPermissions: () => Promise<void>;
+      getAccounts: () => Promise<string[]>;
+      signAndExecuteTransaction: (params: {
+        transaction: TransactionBlock;
+        options?: {
+          showEvents?: boolean;
+          showEffects?: boolean;
+        };
+      }) => Promise<{
+        digest: string;
+        [key: string]: any;
+      }>;
+    };
+  }
+}
