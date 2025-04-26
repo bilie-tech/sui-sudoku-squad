@@ -1,4 +1,3 @@
-
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { getWallets, Wallet, WalletAccount } from '@mysten/wallet-standard';
@@ -209,6 +208,26 @@ export const suiBlockchain = {
       console.error('Failed to set bounty:', error);
       throw error;
     }
+  },
+
+  disconnectWallet: async (): Promise<boolean> => {
+    try {
+      const wallet = getCurrentWallet();
+      
+      if (!wallet) {
+        throw new Error('No Sui wallet detected');
+      }
+
+      // Check if the wallet has a disconnect feature
+      if (wallet.features['standard:disconnect']) {
+        await wallet.features['standard:disconnect'].disconnect();
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to disconnect wallet:', error);
+      return false;
+    }
   }
 };
 
@@ -245,6 +264,9 @@ declare module '@mysten/wallet-standard' {
           digest: string;
           [key: string]: any;
         }>;
+      };
+      'standard:disconnect'?: {
+        disconnect: () => Promise<void>;
       };
     };
   }

@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { suiBlockchain } from '@/utils/suiBlockchain';
 import { toast } from 'sonner';
+import { LogOut } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [userAddress, setUserAddress] = useState<string | null>(null);
@@ -35,6 +37,19 @@ const Header: React.FC = () => {
       toast.error('Failed to connect to Sui wallet. Please try again.');
     } finally {
       setIsConnecting(false);
+    }
+  };
+  
+  const handleDisconnect = async () => {
+    try {
+      const success = await suiBlockchain.disconnectWallet();
+      if (success) {
+        setUserAddress(null);
+        toast.success('Wallet disconnected successfully');
+      }
+    } catch (error) {
+      console.error('Failed to disconnect wallet', error);
+      toast.error('Failed to disconnect wallet. Please try again.');
     }
   };
   
@@ -75,9 +90,19 @@ const Header: React.FC = () => {
           </Link>
           
           {userAddress ? (
-            <Button variant="outline" className="font-mono">
-              {truncateAddress(userAddress)}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="font-mono">
+                {truncateAddress(userAddress)}
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                onClick={handleDisconnect}
+                title="Disconnect Wallet"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           ) : (
             <Button 
               onClick={handleConnect}
