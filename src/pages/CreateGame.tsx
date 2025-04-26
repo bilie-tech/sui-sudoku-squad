@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameOptions from '@/components/GameOptions';
-import { DifficultyLevel, SudokuGame } from '@/types/sudoku';
+import { DifficultyLevel } from '@/types/sudoku';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { suiBlockchain } from '@/utils/suiBlockchain';
 import { toast } from 'sonner';
