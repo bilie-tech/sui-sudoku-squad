@@ -31,3 +31,19 @@ export interface MintGameParams {
   difficulty: DifficultyLevel;
   showCommentary: boolean;
 }
+
+// Sui blockchain specific types
+export interface SuiProvider {
+  connection: {
+    fullnode: string;
+  };
+}
+
+export interface SuiWallet {
+  connecting: boolean;
+  connected: boolean;
+  status: 'connecting' | 'connected' | 'disconnected';
+  address?: string;
+  publicKey?: string;
+  signAndExecuteTransaction: (transaction: any) => Promise<any>;
+}

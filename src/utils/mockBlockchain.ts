@@ -1,7 +1,30 @@
 
-import { SudokuGame, DifficultyLevel, UserProfile } from '../types/sudoku';
+import { SudokuGame, DifficultyLevel, UserProfile, SuiWallet, SuiProvider } from '../types/sudoku';
 import { generateSudokuGame } from './sudokuGenerator';
 import { toast } from 'sonner';
+
+// In a real implementation, we would connect to the Sui blockchain
+// For now, we'll simulate this behavior with functions that mimic blockchain interactions
+
+// Mock wallet state - in a real implementation, this would be connected to an actual wallet
+let wallet: SuiWallet = {
+  connecting: false,
+  connected: false,
+  status: 'disconnected',
+  signAndExecuteTransaction: async (transaction) => {
+    console.log('Simulating transaction execution:', transaction);
+    // Simulate blockchain delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return { success: true, digest: `0x${Math.random().toString(16).slice(2, 10)}` };
+  }
+};
+
+// Mock Sui provider - in a real implementation, this would be an actual connection to a Sui node
+const provider: SuiProvider = {
+  connection: {
+    fullnode: 'https://fullnode.devnet.sui.io'
+  }
+};
 
 // Mocked user profiles
 const mockProfiles: Record<string, UserProfile> = {
@@ -61,24 +84,54 @@ let mockGames: SudokuGame[] = [
   }
 ];
 
-// This would be replaced by actual Sui blockchain API calls
+// This simulates Sui blockchain API calls
 export const mockBlockchainApi = {
-  // Connect to wallet
+  // Connect to wallet - in a real implementation, this would connect to a real Sui wallet
   connectWallet: async (): Promise<{ address: string }> => {
-    // Simulate connecting to a wallet
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { address: '0x123' };
+    try {
+      console.log('Connecting to Sui wallet...');
+      wallet.connecting = true;
+      
+      // Simulate wallet connection
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if window.sui exists (this would be available if Sui wallet extension is installed)
+      const isSuiWalletAvailable = 'sui' in window;
+      
+      if (!isSuiWalletAvailable) {
+        throw new Error('Sui wallet extension not detected. Please install a Sui wallet extension.');
+      }
+      
+      // In a real implementation, we would connect to the actual Sui wallet here
+      // For now, we'll simulate this behavior
+      wallet.connected = true;
+      wallet.status = 'connected';
+      wallet.address = `0x${Math.random().toString(16).slice(2, 10)}`;
+      
+      console.log('Connected to Sui wallet:', wallet.address);
+      return { address: wallet.address };
+    } catch (error) {
+      console.error('Failed to connect to Sui wallet:', error);
+      throw error;
+    } finally {
+      wallet.connecting = false;
+    }
   },
   
   // Get current user
   getCurrentUser: async (): Promise<{ address: string }> => {
-    // Return mocked connected address
-    return { address: '0x123' };
+    if (!wallet.connected || !wallet.address) {
+      throw new Error('Not connected to Sui wallet');
+    }
+    return { address: wallet.address };
   },
   
   // Get user profile
   getUserProfile: async (address: string): Promise<UserProfile> => {
+    // Simulate blockchain delay
     await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // In a real implementation, we would fetch this data from the blockchain
     return mockProfiles[address] || {
       address,
       displayName: `User-${address.substring(0, 4)}`,
@@ -90,39 +143,76 @@ export const mockBlockchainApi = {
   
   // Mint a new game
   mintGame: async (difficulty: DifficultyLevel, showCommentary: boolean, creatorAddress: string): Promise<SudokuGame> => {
-    // Simulate blockchain delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('Minting new Sudoku game on Sui blockchain...');
     
-    const { board, solution } = generateSudokuGame(difficulty);
-    
-    const newGame: SudokuGame = {
-      id: `0x${Math.floor(Math.random() * 1000000).toString(16)}`,
-      board,
-      solution,
-      difficulty,
-      showCommentary,
-      creator: creatorAddress,
-      currentOwner: creatorAddress,
-      dateCreated: new Date().toISOString(),
-      bounty: 0,
-      isComplete: false
-    };
-    
-    mockGames.push(newGame);
-    
-    // Update user stats
-    if (mockProfiles[creatorAddress]) {
-      mockProfiles[creatorAddress].gamesCreated += 1;
+    if (!wallet.connected || !wallet.address) {
+      throw new Error('Not connected to Sui wallet');
     }
     
-    return newGame;
+    // Generate a new Sudoku game
+    const { board, solution } = generateSudokuGame(difficulty);
+    
+    // Prepare transaction data (in a real implementation, this would be a proper Sui transaction)
+    const transactionData = {
+      kind: 'moveCall',
+      data: {
+        packageObjectId: '0x2', // Example package ID
+        module: 'sudoku',
+        function: 'mint_game',
+        typeArguments: [],
+        arguments: [
+          difficulty,
+          showCommentary,
+          JSON.stringify(board),
+          JSON.stringify(solution)
+        ],
+        gasBudget: 10000
+      }
+    };
+    
+    try {
+      // Simulate transaction execution
+      const txResult = await wallet.signAndExecuteTransaction(transactionData);
+      console.log('Mint transaction result:', txResult);
+      
+      // In a real implementation, we would parse the transaction result
+      // and extract the newly created game object from the blockchain
+      const newGame: SudokuGame = {
+        id: `0x${Math.floor(Math.random() * 1000000).toString(16)}`,
+        board,
+        solution,
+        difficulty,
+        showCommentary,
+        creator: creatorAddress,
+        currentOwner: creatorAddress,
+        dateCreated: new Date().toISOString(),
+        bounty: 0,
+        isComplete: false
+      };
+      
+      // For demonstration purposes, we'll add the new game to our mock storage
+      mockGames.push(newGame);
+      
+      // Update user stats
+      if (mockProfiles[creatorAddress]) {
+        mockProfiles[creatorAddress].gamesCreated += 1;
+      }
+      
+      return newGame;
+    } catch (error) {
+      console.error('Failed to mint Sudoku game:', error);
+      throw error;
+    }
   },
   
   // Get games for an address
   getGames: async (address?: string): Promise<SudokuGame[]> => {
+    console.log('Fetching games from Sui blockchain...');
+    
     // Simulate blockchain delay
     await new Promise(resolve => setTimeout(resolve, 700));
     
+    // In a real implementation, we would query the blockchain for games
     if (address) {
       return mockGames.filter(game => game.currentOwner === address);
     }
@@ -132,98 +222,205 @@ export const mockBlockchainApi = {
   
   // Get a specific game
   getGame: async (gameId: string): Promise<SudokuGame | null> => {
+    console.log('Fetching game from Sui blockchain:', gameId);
+    
     // Simulate blockchain delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
+    // In a real implementation, we would query the blockchain for the specific game
     const game = mockGames.find(g => g.id === gameId);
     return game || null;
   },
   
   // Transfer a game to another address
   transferGame: async (gameId: string, toAddress: string): Promise<boolean> => {
-    // Simulate blockchain delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log('Transferring game on Sui blockchain:', gameId, 'to:', toAddress);
     
-    const gameIndex = mockGames.findIndex(g => g.id === gameId);
-    if (gameIndex >= 0) {
-      mockGames[gameIndex].currentOwner = toAddress;
-      return true;
+    if (!wallet.connected || !wallet.address) {
+      throw new Error('Not connected to Sui wallet');
     }
     
-    return false;
+    // Prepare transaction data
+    const transactionData = {
+      kind: 'moveCall',
+      data: {
+        packageObjectId: '0x2', // Example package ID
+        module: 'sudoku',
+        function: 'transfer',
+        typeArguments: [],
+        arguments: [gameId, toAddress],
+        gasBudget: 10000
+      }
+    };
+    
+    try {
+      // Simulate transaction execution
+      const txResult = await wallet.signAndExecuteTransaction(transactionData);
+      console.log('Transfer transaction result:', txResult);
+      
+      // For demonstration purposes, we'll update our mock storage
+      const gameIndex = mockGames.findIndex(g => g.id === gameId);
+      if (gameIndex >= 0) {
+        mockGames[gameIndex].currentOwner = toAddress;
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to transfer game:', error);
+      throw error;
+    }
   },
   
   // Update a game's state
   updateGame: async (gameId: string, updatedBoard: number[][]): Promise<SudokuGame | null> => {
-    // Simulate blockchain delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    console.log('Updating game on Sui blockchain:', gameId);
     
-    const gameIndex = mockGames.findIndex(g => g.id === gameId);
-    if (gameIndex >= 0) {
-      mockGames[gameIndex].board = updatedBoard;
-      
-      // Check if the game is complete
-      let isComplete = true;
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          if (updatedBoard[row][col] === null) {
-            isComplete = false;
-            break;
-          }
-        }
-        if (!isComplete) break;
-      }
-      
-      mockGames[gameIndex].isComplete = isComplete;
-      
-      if (isComplete) {
-        const ownerAddress = mockGames[gameIndex].currentOwner;
-        if (mockProfiles[ownerAddress]) {
-          mockProfiles[ownerAddress].gamesCompleted += 1;
-        }
-        toast.success("Congratulations! You've completed the Sudoku puzzle!");
-      }
-      
-      return mockGames[gameIndex];
+    if (!wallet.connected || !wallet.address) {
+      throw new Error('Not connected to Sui wallet');
     }
     
-    return null;
+    // Prepare transaction data
+    const transactionData = {
+      kind: 'moveCall',
+      data: {
+        packageObjectId: '0x2', // Example package ID
+        module: 'sudoku',
+        function: 'update_game',
+        typeArguments: [],
+        arguments: [gameId, JSON.stringify(updatedBoard)],
+        gasBudget: 10000
+      }
+    };
+    
+    try {
+      // Simulate transaction execution
+      const txResult = await wallet.signAndExecuteTransaction(transactionData);
+      console.log('Update transaction result:', txResult);
+      
+      // For demonstration purposes, we'll update our mock storage
+      const gameIndex = mockGames.findIndex(g => g.id === gameId);
+      if (gameIndex >= 0) {
+        mockGames[gameIndex].board = updatedBoard;
+        
+        // Check if the game is complete
+        let isComplete = true;
+        for (let row = 0; row < 9; row++) {
+          for (let col = 0; col < 9; col++) {
+            if (updatedBoard[row][col] === null) {
+              isComplete = false;
+              break;
+            }
+          }
+          if (!isComplete) break;
+        }
+        
+        mockGames[gameIndex].isComplete = isComplete;
+        
+        if (isComplete) {
+          const ownerAddress = mockGames[gameIndex].currentOwner;
+          if (mockProfiles[ownerAddress]) {
+            mockProfiles[ownerAddress].gamesCompleted += 1;
+          }
+          toast.success("Congratulations! You've completed the Sudoku puzzle!");
+        }
+        
+        return mockGames[gameIndex];
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to update game:', error);
+      throw error;
+    }
   },
   
   // Set a bounty on a game
   setBounty: async (gameId: string, amount: number): Promise<boolean> => {
-    // Simulate blockchain delay
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    console.log('Setting bounty on Sui blockchain:', gameId, 'amount:', amount);
     
-    const gameIndex = mockGames.findIndex(g => g.id === gameId);
-    if (gameIndex >= 0) {
-      mockGames[gameIndex].bounty = amount;
-      return true;
+    if (!wallet.connected || !wallet.address) {
+      throw new Error('Not connected to Sui wallet');
     }
     
-    return false;
+    // Prepare transaction data
+    const transactionData = {
+      kind: 'moveCall',
+      data: {
+        packageObjectId: '0x2', // Example package ID
+        module: 'sudoku',
+        function: 'set_bounty',
+        typeArguments: [],
+        arguments: [gameId, amount.toString()],
+        gasBudget: 10000
+      }
+    };
+    
+    try {
+      // Simulate transaction execution
+      const txResult = await wallet.signAndExecuteTransaction(transactionData);
+      console.log('Bounty transaction result:', txResult);
+      
+      // For demonstration purposes, we'll update our mock storage
+      const gameIndex = mockGames.findIndex(g => g.id === gameId);
+      if (gameIndex >= 0) {
+        mockGames[gameIndex].bounty = amount;
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to set bounty:', error);
+      throw error;
+    }
   },
   
   // Request to help with a game
   requestHelp: async (gameId: string, helperAddress: string): Promise<boolean> => {
-    // Simulate blockchain delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Requesting help on Sui blockchain:', gameId, 'helper:', helperAddress);
     
-    const gameIndex = mockGames.findIndex(g => g.id === gameId);
-    if (gameIndex >= 0) {
-      // Add helper to the game
-      if (!mockGames[gameIndex].helpers) {
-        mockGames[gameIndex].helpers = [];
-      }
-      
-      if (!mockGames[gameIndex].helpers.includes(helperAddress)) {
-        mockGames[gameIndex].helpers.push(helperAddress);
-      }
-      
-      return true;
+    if (!wallet.connected || !wallet.address) {
+      throw new Error('Not connected to Sui wallet');
     }
     
-    return false;
+    // Prepare transaction data
+    const transactionData = {
+      kind: 'moveCall',
+      data: {
+        packageObjectId: '0x2', // Example package ID
+        module: 'sudoku',
+        function: 'request_help',
+        typeArguments: [],
+        arguments: [gameId, helperAddress],
+        gasBudget: 10000
+      }
+    };
+    
+    try {
+      // Simulate transaction execution
+      const txResult = await wallet.signAndExecuteTransaction(transactionData);
+      console.log('Help request transaction result:', txResult);
+      
+      // For demonstration purposes, we'll update our mock storage
+      const gameIndex = mockGames.findIndex(g => g.id === gameId);
+      if (gameIndex >= 0) {
+        // Add helper to the game
+        if (!mockGames[gameIndex].helpers) {
+          mockGames[gameIndex].helpers = [];
+        }
+        
+        if (!mockGames[gameIndex].helpers.includes(helperAddress)) {
+          mockGames[gameIndex].helpers.push(helperAddress);
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to request help:', error);
+      throw error;
+    }
   }
 };
 

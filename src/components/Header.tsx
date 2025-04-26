@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { mockBlockchainApi } from '@/utils/mockBlockchain';
+import { toast } from 'sonner';
 
 const Header: React.FC = () => {
   const [userAddress, setUserAddress] = useState<string | null>(null);
@@ -26,10 +27,17 @@ const Header: React.FC = () => {
     setIsConnecting(true);
     
     try {
+      if (!('sui' in window)) {
+        toast.error('Sui wallet extension not detected. Please install a Sui wallet extension.');
+        return;
+      }
+      
       const { address } = await mockBlockchainApi.connectWallet();
       setUserAddress(address);
+      toast.success('Connected to Sui wallet successfully!');
     } catch (error) {
       console.error('Failed to connect wallet', error);
+      toast.error('Failed to connect to Sui wallet. Please try again.');
     } finally {
       setIsConnecting(false);
     }
