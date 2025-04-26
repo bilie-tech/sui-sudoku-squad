@@ -3,6 +3,7 @@ import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import { getWallets } from '@mysten/wallet-standard';
 import { DifficultyLevel } from '../types/sudoku';
+import { bcs } from '@mysten/sui/bcs';
 
 // Initialize Sui client (using testnet by default)
 const client = new SuiClient({ url: getFullnodeUrl('testnet') });
@@ -86,9 +87,14 @@ export const suiBlockchain = {
     const tx = new Transaction();
     
     // Correctly create transaction arguments with proper typing
-    // Convert to Buffer for binary data (compatible with Uint8Array expectations)
+    // Convert string values to Buffer for binary data
     const difficultyParam = tx.pure(Buffer.from(difficulty));
-    const showCommentaryParam = tx.pure(showCommentary);
+    
+    // Convert boolean to a Buffer containing 0 or 1
+    const showCommentaryBuffer = Buffer.alloc(1);
+    showCommentaryBuffer.writeUInt8(showCommentary ? 1 : 0);
+    const showCommentaryParam = tx.pure(showCommentaryBuffer);
+    
     const creatorAddressParam = tx.pure(Buffer.from(creatorAddress));
     
     // Example of minting a new game NFT
@@ -255,4 +261,3 @@ export const suiBlockchain = {
     }
   }
 };
-
