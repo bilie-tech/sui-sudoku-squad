@@ -1,20 +1,17 @@
 
 import { SuiClient, getFullnodeUrl } from '@mysten/sui.js/client';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
-import { WalletStandardProvider } from '@mysten/wallet-standard';
+import { getWallets } from '@mysten/wallet-kit';
 import { DifficultyLevel } from '../types/sudoku';
 
 // Initialize Sui client (using testnet by default)
 const client = new SuiClient({ url: getFullnodeUrl('testnet') });
 
-// Initialize wallet standard
-const walletKit = new WalletStandardProvider();
-
 export const suiBlockchain = {
   connectWallet: async (): Promise<{ address: string }> => {
     try {
-      // Get available wallets
-      const availableWallets = await walletKit.getWallets();
+      // Get available wallets using the wallet-kit
+      const availableWallets = getWallets();
       
       if (availableWallets.length === 0) {
         throw new Error('No Sui wallets detected. Please install a Sui wallet extension.');
@@ -23,8 +20,12 @@ export const suiBlockchain = {
       // Use the first available wallet (in production, you might want to let users choose)
       const wallet = availableWallets[0];
       
+      if (!wallet.features.standard?.connect) {
+        throw new Error('Wallet does not support standard connect feature');
+      }
+      
       // Request permissions and get accounts
-      const accounts = await wallet.features['standard:connect'].connect();
+      const accounts = await wallet.features.standard.connect();
       
       if (!accounts || accounts.accounts.length === 0) {
         throw new Error('No accounts found in wallet');
@@ -39,14 +40,19 @@ export const suiBlockchain = {
 
   getCurrentUser: async (): Promise<{ address: string }> => {
     try {
-      const availableWallets = await walletKit.getWallets();
+      const availableWallets = getWallets();
       
       if (availableWallets.length === 0) {
         throw new Error('No Sui wallets detected');
       }
       
       const wallet = availableWallets[0];
-      const currentAccounts = await wallet.features['standard:connect'].connect();
+      
+      if (!wallet.features.standard?.connect) {
+        throw new Error('Wallet does not support standard connect feature');
+      }
+      
+      const currentAccounts = await wallet.features.standard.connect();
       
       if (!currentAccounts || currentAccounts.accounts.length === 0) {
         throw new Error('Not connected to Sui wallet');
@@ -77,10 +83,19 @@ export const suiBlockchain = {
     });
 
     try {
-      const availableWallets = await walletKit.getWallets();
+      const availableWallets = getWallets();
+      
+      if (availableWallets.length === 0) {
+        throw new Error('No Sui wallets detected');
+      }
+      
       const wallet = availableWallets[0];
       
-      const result = await wallet.features['standard:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+      if (!wallet.features.standard?.signAndExecuteTransactionBlock) {
+        throw new Error('Wallet does not support signAndExecuteTransactionBlock');
+      }
+      
+      const result = await wallet.features.standard.signAndExecuteTransactionBlock({
         transactionBlock: tx,
         chain: 'sui:testnet', // or 'sui:mainnet' for production
         options: {
@@ -120,10 +135,19 @@ export const suiBlockchain = {
     });
 
     try {
-      const availableWallets = await walletKit.getWallets();
+      const availableWallets = getWallets();
+      
+      if (availableWallets.length === 0) {
+        throw new Error('No Sui wallets detected');
+      }
+      
       const wallet = availableWallets[0];
       
-      await wallet.features['standard:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+      if (!wallet.features.standard?.signAndExecuteTransactionBlock) {
+        throw new Error('Wallet does not support signAndExecuteTransactionBlock');
+      }
+      
+      await wallet.features.standard.signAndExecuteTransactionBlock({
         transactionBlock: tx,
         chain: 'sui:testnet', // or 'sui:mainnet' for production
       });
@@ -147,10 +171,19 @@ export const suiBlockchain = {
     });
 
     try {
-      const availableWallets = await walletKit.getWallets();
+      const availableWallets = getWallets();
+      
+      if (availableWallets.length === 0) {
+        throw new Error('No Sui wallets detected');
+      }
+      
       const wallet = availableWallets[0];
       
-      await wallet.features['standard:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+      if (!wallet.features.standard?.signAndExecuteTransactionBlock) {
+        throw new Error('Wallet does not support signAndExecuteTransactionBlock');
+      }
+      
+      await wallet.features.standard.signAndExecuteTransactionBlock({
         transactionBlock: tx,
         chain: 'sui:testnet', // or 'sui:mainnet' for production
       });
