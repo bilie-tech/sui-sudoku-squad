@@ -1,33 +1,49 @@
-
 import { SuiClient, getFullnodeUrl } from '@mysten/sui.js/client';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
-import { useWalletKit } from '@mysten/wallet-kit';
+import { getWallets, Wallet, WalletAccount } from '@mysten/wallet-standard';
 import { DifficultyLevel } from '../types/sudoku';
 
 // Initialize Sui client (using testnet by default)
 const client = new SuiClient({ url: getFullnodeUrl('testnet') });
 
+// Function to get available wallets
+function getAvailableWallets(): Wallet[] {
+  const walletStandard = getWallets();
+  return walletStandard.get();
+}
+
+// Function to get the current wallet
+function getCurrentWallet(): Wallet | undefined {
+  const wallets = getAvailableWallets();
+  // Return the first wallet or undefined if none are available
+  return wallets.length > 0 ? wallets[0] : undefined;
+}
+
 export const suiBlockchain = {
   connectWallet: async (): Promise<{ address: string }> => {
     try {
-      // Get the wallet adapter - note this requires being in a React context
-      // with WalletProvider
-      if (typeof window === 'undefined' || !window.suiWallet) {
+      const wallet = getCurrentWallet();
+      
+      if (!wallet) {
         throw new Error('No Sui wallets detected. Please install a Sui wallet extension.');
       }
       
-      // For non-React contexts, we can use window.suiWallet
-      const wallet = window.suiWallet;
+      // Check if the wallet supports the required features
+      if (!wallet.features['standard:connect']) {
+        throw new Error('Wallet does not support connect feature');
+      }
       
-      // Request connection
-      await wallet.requestPermissions();
-      const accounts = await wallet.getAccounts();
+      // Connect to the wallet
+      const connectResult = await wallet.features['standard:connect'].connect();
+      
+      // Get accounts after connecting
+      const accounts = wallet.accounts;
       
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found in wallet');
       }
 
-      return { address: accounts[0] };
+      return { address: accounts[0].address };
     } catch (error) {
       console.error('Failed to connect to Sui wallet:', error);
       throw error;
@@ -36,18 +52,19 @@ export const suiBlockchain = {
 
   getCurrentUser: async (): Promise<{ address: string }> => {
     try {
-      if (typeof window === 'undefined' || !window.suiWallet) {
+      const wallet = getCurrentWallet();
+      
+      if (!wallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = window.suiWallet;
-      const accounts = await wallet.getAccounts();
+      const accounts = wallet.accounts;
       
       if (!accounts || accounts.length === 0) {
         throw new Error('Not connected to Sui wallet');
       }
       
-      return { address: accounts[0] };
+      return { address: accounts[0].address };
     } catch (error) {
       console.error('Failed to get current user:', error);
       throw error;
@@ -72,14 +89,24 @@ export const suiBlockchain = {
     });
 
     try {
-      if (typeof window === 'undefined' || !window.suiWallet) {
+      const wallet = getCurrentWallet();
+      
+      if (!wallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = window.suiWallet;
+      if (!wallet.features['standard:signAndExecuteTransactionBlock']) {
+        throw new Error('Wallet does not support signAndExecuteTransactionBlock feature');
+      }
       
-      const result = await wallet.signAndExecuteTransaction({
-        transaction: tx,
+      // Get the current account
+      const account = wallet.accounts[0];
+      
+      // Sign and execute the transaction
+      const result = await wallet.features['standard:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+        transactionBlock: tx,
+        account,
+        chain: 'sui:testnet',
         options: {
           showEvents: true,
           showEffects: true,
@@ -117,14 +144,24 @@ export const suiBlockchain = {
     });
 
     try {
-      if (typeof window === 'undefined' || !window.suiWallet) {
+      const wallet = getCurrentWallet();
+      
+      if (!wallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = window.suiWallet;
+      if (!wallet.features['standard:signAndExecuteTransactionBlock']) {
+        throw new Error('Wallet does not support signAndExecuteTransactionBlock feature');
+      }
       
-      await wallet.signAndExecuteTransaction({
-        transaction: tx
+      // Get the current account
+      const account = wallet.accounts[0];
+      
+      // Sign and execute the transaction
+      await wallet.features['standard:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+        transactionBlock: tx,
+        account,
+        chain: 'sui:testnet',
       });
       
       return true;
@@ -146,14 +183,24 @@ export const suiBlockchain = {
     });
 
     try {
-      if (typeof window === 'undefined' || !window.suiWallet) {
+      const wallet = getCurrentWallet();
+      
+      if (!wallet) {
         throw new Error('No Sui wallets detected');
       }
       
-      const wallet = window.suiWallet;
+      if (!wallet.features['standard:signAndExecuteTransactionBlock']) {
+        throw new Error('Wallet does not support signAndExecuteTransactionBlock feature');
+      }
       
-      await wallet.signAndExecuteTransaction({
-        transaction: tx
+      // Get the current account
+      const account = wallet.accounts[0];
+      
+      // Sign and execute the transaction
+      await wallet.features['standard:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+        transactionBlock: tx,
+        account,
+        chain: 'sui:testnet',
       });
       
       return true;
@@ -164,22 +211,46 @@ export const suiBlockchain = {
   }
 };
 
-// Add this for TypeScript support
-declare global {
-  interface Window {
-    suiWallet?: {
-      requestPermissions: () => Promise<void>;
-      getAccounts: () => Promise<string[]>;
-      signAndExecuteTransaction: (params: {
-        transaction: TransactionBlock;
-        options?: {
-          showEvents?: boolean;
-          showEffects?: boolean;
-        };
-      }) => Promise<{
-        digest: string;
-        [key: string]: any;
-      }>;
+// Type definitions for the Wallet Standard
+declare module '@mysten/wallet-standard' {
+  export function getWallets(): {
+    get: () => Wallet[];
+    on: (event: string, callback: (wallets: Wallet[]) => void) => void;
+  };
+
+  export interface Wallet {
+    name: string;
+    icon: string;
+    accounts: WalletAccount[];
+    chains: string[];
+    features: {
+      'standard:connect'?: {
+        connect: () => Promise<{ accounts: WalletAccount[] }>;
+      };
+      'standard:events'?: {
+        on: (event: string, callback: (data: any) => void) => void;
+      };
+      'standard:signAndExecuteTransactionBlock'?: {
+        signAndExecuteTransactionBlock: (params: {
+          transactionBlock: TransactionBlock;
+          account: WalletAccount;
+          chain: string;
+          options?: {
+            showEvents?: boolean;
+            showEffects?: boolean;
+          };
+        }) => Promise<{
+          digest: string;
+          [key: string]: any;
+        }>;
+      };
     };
+  }
+
+  export interface WalletAccount {
+    address: string;
+    publicKey: Uint8Array;
+    chains: string[];
+    features: string[];
   }
 }
